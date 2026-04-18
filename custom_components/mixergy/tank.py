@@ -9,10 +9,6 @@ from .const import (ATTR_CHARGE,
 
 _LOGGER = logging.getLogger(__name__)
 
-class TankUrls:
-    def __init__(self, account_url):
-        self.account_url = account_url
-
 class Tank:
 
     manufacturer = "Mixergy Ltd"
