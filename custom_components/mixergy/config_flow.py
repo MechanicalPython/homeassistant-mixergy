@@ -4,7 +4,15 @@ import voluptuous as vol
 
 from homeassistant import config_entries, core, exceptions
 from .tank import Tank
-from .const import DOMAIN  # pylint:disable=unused-import
+from .const import (
+    CONF_AMBIENT_ENTITY,
+    CONF_SERIAL,
+    CONF_TANK_LITRES,
+    CONF_TANK_SURFACE_M2,
+    DEFAULT_TANK_LITRES,
+    DEFAULT_TANK_SURFACE_M2,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

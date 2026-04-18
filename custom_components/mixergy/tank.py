@@ -4,11 +4,10 @@ import json
 from datetime import datetime
 from typing import Optional
 from homeassistant.helpers import aiohttp_client
-from .const import ATTR_CHARGE
+from .const import (ATTR_CHARGE,
+                    MIXERGY_API_BASE)
 
 _LOGGER = logging.getLogger(__name__)
-
-ROOT_ENDPOINT = "https://www.mixergy.io/api/v2"
 
 class TankUrls:
     def __init__(self, account_url):
@@ -246,10 +245,10 @@ class Tank:
 
         session = aiohttp_client.async_get_clientsession(self._hass, verify_ssl=False)
 
-        async with session.get(ROOT_ENDPOINT) as resp:
+        async with session.get(MIXERGY_API_BASE) as resp:
 
             if resp.status != 200:
-                _LOGGER.error("Fetch of root at %s failed with status code %i", ROOT_ENDPOINT, resp.status)
+                _LOGGER.error("Fetch of root at %s failed with status code %i", MIXERGY_API_BASE, resp.status)
                 return False
 
             root_result = await resp.json()
@@ -291,10 +290,10 @@ class Tank:
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.get(ROOT_ENDPOINT, headers=headers) as resp:
+        async with session.get(MIXERGY_API_BASE, headers=headers) as resp:
 
             if resp.status != 200:
-                _LOGGER.error("Fetch of root at %s failed with status code %i", ROOT_ENDPOINT, resp.status)
+                _LOGGER.error("Fetch of root at %s failed with status code %i", MIXERGY_API_BASE, resp.status)
                 return False
 
             root_result = await resp.json()
@@ -373,7 +372,7 @@ class Tank:
 
             tank_result = await resp.json()
             _LOGGER.debug(tank_result)
-
+            print(tank_result)
             self._hot_water_temperature = tank_result["topTemperature"]
             self._coldest_water_temperature = tank_result["bottomTemperature"]
 
