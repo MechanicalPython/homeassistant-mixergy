@@ -88,4 +88,24 @@ This integration is useful as it provides the state of your Mixergy tank via the
 * ~~Get the Mixergy icon added, to improve the installation~~
 * ~~Support *away* by controlling tank's holiday mode~~
 
+## Heat loss
+| Condition | U-value (W/m²·K) |
+|---|---|
+| Excellent factory foam insulation (new tank) | 0.20 – 0.40 |
+| Good insulation (typical modern cylinder) | 0.40 – 0.70 |
+| Ageing or average insulation | 0.70 – 1.20 |
+| Poor insulation / older unlagged tank | 1.20 – 2.50 |
+| Essentially uninsulated | > 3.00 |
 
+For context with a real tank: A typical 180-litre Mixergy at 60°C in a 15°C garage (45 K difference) with a U-value of 0.5 W/m²·K and 1.8 m² surface area would lose roughly:
+
+0.5 × 1.8 × 45 = 40.5 W continuously
+
+Over 24 hours that's about 1 kWh of standby loss — which is broadly consistent with what Mixergy and similar manufacturers quote.
+Practical benchmarks:
+
+UK Building Regulations (Part L) require new factory-insulated cylinders to lose no more than roughly 1.4–2.0 kWh/day at 60°C, implying U-values well under 1.0 for a typical cylinder.
+Mixergy's own foam-jacketed tanks are designed to perform in the 0.3–0.6 range when new.
+If your integration consistently measures above 1.0, it's worth checking whether the tank is in a very cold space, whether the insulation jacket is damaged, or whether the ambient temperature sensor entity is placed too close to the tank itself (which would understate the temperature difference and inflate the calculated U-value).
+
+A good target to aim for in the integration: flag anything above 0.8 W/m²·K as worth investigating, and treat anything below 0.5 as healthy.
