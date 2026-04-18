@@ -1,21 +1,33 @@
 {
-    "config": {
-      "step": {
-        "user": {
-          "data": {
-            "serial_number": "[%key:common::config_flow::data::serial_number%]",
-            "username": "[%key:common::config_flow::data::username%]",
-            "password": "[%key:common::config_flow::data::password%]"
-          }
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mixergy Account",
+        "description": "Enter your Mixergy account credentials and tank serial number.",
+        "data": {
+          "serial_number": "Serial Number",
+          "username": "Username",
+          "password": "Password"
         }
       },
-      "error": {
-        "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-        "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
-        "unknown": "[%key:common::config_flow::error::unknown%]"
-      },
-      "abort": {
-        "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+      "tank_options": {
+        "title": "Tank Properties",
+        "description": "These values are used to calculate passive heat loss. Leave the defaults if you are unsure — they match a typical 180-litre Mixergy cylinder.",
+        "data": {
+          "tank_litres": "Tank volume (litres)",
+          "tank_surface_m2": "Tank surface area (m²)",
+          "ambient_temp_entity": "Ambient temperature entity (optional)"
+        }
       }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "tank_not_found": "No tank was found with the supplied serial number.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     }
   }
+}

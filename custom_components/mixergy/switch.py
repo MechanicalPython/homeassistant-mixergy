@@ -6,6 +6,7 @@ from .mixergy_entity import MixergyEntityBase
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(hass, config_entry, async_add_entities):
     _LOGGER.info("Setting up entry based on user config")
 
@@ -22,16 +23,17 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     async_add_entities(new_entities)
 
-class SwitchEntityBase(MixergyEntityBase, SwitchEntity):
 
+class SwitchEntityBase(MixergyEntityBase, SwitchEntity):
     device_class = SwitchDeviceClass.SWITCH
 
-    def __init__(self, coordinator, tank:Tank):
+    def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
+
 
 class DSRSwitch(SwitchEntityBase):
 
-    def __init__(self, coordinator, tank:Tank):
+    def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
 
     @property
@@ -52,9 +54,10 @@ class DSRSwitch(SwitchEntityBase):
     async def async_turn_off(self, **kwargs):
         await self._tank.set_dsr_enabled(False)
 
+
 class FrostProtectionSwitch(SwitchEntityBase):
 
-    def __init__(self, coordinator, tank:Tank):
+    def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
 
     @property
@@ -75,9 +78,10 @@ class FrostProtectionSwitch(SwitchEntityBase):
     async def async_turn_off(self, **kwargs):
         await self._tank.set_frost_protection_enabled(False)
 
+
 class DistributedComputingSwitch(SwitchEntityBase):
 
-    def __init__(self, coordinator, tank:Tank):
+    def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
 
     @property
@@ -98,9 +102,10 @@ class DistributedComputingSwitch(SwitchEntityBase):
     async def async_turn_off(self, **kwargs):
         await self._tank.set_distributed_computing_enabled(False)
 
+
 class PVDivertSwitch(SwitchEntityBase):
 
-    def __init__(self, coordinator, tank:Tank):
+    def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
 
     @property

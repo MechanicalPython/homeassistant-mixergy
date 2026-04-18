@@ -2,6 +2,7 @@ from .const import DOMAIN
 from .tank import Tank
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+
 class MixergyEntityBase(CoordinatorEntity):
 
     should_poll = True

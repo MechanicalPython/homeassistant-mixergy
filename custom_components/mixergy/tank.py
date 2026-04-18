@@ -9,8 +9,8 @@ from .const import (ATTR_CHARGE,
 
 _LOGGER = logging.getLogger(__name__)
 
-class Tank:
 
+class Tank:
     manufacturer = "Mixergy Ltd"
 
     def __init__(self, hass, username, password, serial_number):
@@ -58,17 +58,17 @@ class Tank:
 
     async def test_connection(self):
         return await self.fetch_tank_information()
-    
+
     async def set_target_charge(self, charge):
 
         session = aiohttp_client.async_get_clientsession(self._hass, verify_ssl=False)
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.put(self._control_url, headers=headers, json={'charge': charge }) as resp:
-
+        async with session.put(self._control_url, headers=headers, json={'charge': charge}) as resp:
             if resp.status != 200:
-                _LOGGER.error("Call to %s to set the desired charge failed with status %i", self._control_url, resp.status)
+                _LOGGER.error("Call to %s to set the desired charge failed with status %i", self._control_url,
+                              resp.status)
                 return
 
             await self.fetch_last_measurement()
@@ -79,10 +79,10 @@ class Tank:
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.put(self._settings_url, headers=headers, json={'max_temp': temperature }) as resp:
-
+        async with session.put(self._settings_url, headers=headers, json={'max_temp': temperature}) as resp:
             if resp.status != 200:
-                _LOGGER.error("Call to %s to set the target temperature failed with status %i", self._settings_url, resp.status)
+                _LOGGER.error("Call to %s to set the target temperature failed with status %i", self._settings_url,
+                              resp.status)
                 return
 
             await self.fetch_settings()
@@ -93,10 +93,10 @@ class Tank:
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.put(self._settings_url, headers=headers, json={'dsr_enabled': enabled }) as resp:
-
+        async with session.put(self._settings_url, headers=headers, json={'dsr_enabled': enabled}) as resp:
             if resp.status != 200:
-                _LOGGER.error("Call to %s to set dsr (grid assistance) enabled failed with status %i", self._settings_url, resp.status)
+                _LOGGER.error("Call to %s to set dsr (grid assistance) enabled failed with status %i",
+                              self._settings_url, resp.status)
                 return
 
             await self.fetch_settings()
@@ -107,10 +107,10 @@ class Tank:
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.put(self._settings_url, headers=headers, json={'frost_protection_enabled': enabled }) as resp:
-
+        async with session.put(self._settings_url, headers=headers, json={'frost_protection_enabled': enabled}) as resp:
             if resp.status != 200:
-                _LOGGER.error("Call to %s to set frost protection enabled failed with status %i", self._settings_url, resp.status)
+                _LOGGER.error("Call to %s to set frost protection enabled failed with status %i", self._settings_url,
+                              resp.status)
                 return
 
             await self.fetch_settings()
@@ -121,10 +121,12 @@ class Tank:
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.put(self._settings_url, headers=headers, json={'distributed_computing_enabled': enabled }) as resp:
-
+        async with session.put(self._settings_url, headers=headers,
+                               json={'distributed_computing_enabled': enabled}) as resp:
             if resp.status != 200:
-                _LOGGER.error("Call to %s to set distributed computing (medical research) enabled failed with status %i", self._settings_url, resp.status)
+                _LOGGER.error(
+                    "Call to %s to set distributed computing (medical research) enabled failed with status %i",
+                    self._settings_url, resp.status)
                 return
 
             await self.fetch_settings()
@@ -139,10 +141,10 @@ class Tank:
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.put(self._settings_url, headers=headers, json={'cleansing_temperature': value }) as resp:
-
+        async with session.put(self._settings_url, headers=headers, json={'cleansing_temperature': value}) as resp:
             if resp.status != 200:
-                _LOGGER.error("Call to %s to set cleansing temperature failed with status %i", self._settings_url, resp.status)
+                _LOGGER.error("Call to %s to set cleansing temperature failed with status %i", self._settings_url,
+                              resp.status)
                 return
 
             await self.fetch_settings()
@@ -153,10 +155,10 @@ class Tank:
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.put(self._settings_url, headers=headers, json={'divert_exported_enabled': enabled }) as resp:
-
+        async with session.put(self._settings_url, headers=headers, json={'divert_exported_enabled': enabled}) as resp:
             if resp.status != 200:
-                _LOGGER.error("Call to %s to set divert export enabled failed with status %i", self._settings_url, resp.status)
+                _LOGGER.error("Call to %s to set divert export enabled failed with status %i", self._settings_url,
+                              resp.status)
                 return
 
             await self.fetch_settings()
@@ -171,10 +173,10 @@ class Tank:
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.put(self._settings_url, headers=headers, json={'pv_cut_in_threshold': value }) as resp:
-
+        async with session.put(self._settings_url, headers=headers, json={'pv_cut_in_threshold': value}) as resp:
             if resp.status != 200:
-                _LOGGER.error("Call to %s to set PV cut in threshold failed with status %i", self._control_url, resp.status)
+                _LOGGER.error("Call to %s to set PV cut in threshold failed with status %i", self._control_url,
+                              resp.status)
                 return
 
             await self.fetch_settings()
@@ -189,8 +191,7 @@ class Tank:
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.put(self._settings_url, headers=headers, json={'pv_charge_limit': value }) as resp:
-
+        async with session.put(self._settings_url, headers=headers, json={'pv_charge_limit': value}) as resp:
             if resp.status != 200:
                 _LOGGER.error("Call to %s to set PV charge limit failed with status %i", self._control_url, resp.status)
                 return
@@ -207,10 +208,10 @@ class Tank:
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.put(self._settings_url, headers=headers, json={'pv_target_current': value }) as resp:
-
+        async with session.put(self._settings_url, headers=headers, json={'pv_target_current': value}) as resp:
             if resp.status != 200:
-                _LOGGER.error("Call to %s to set PV target current failed with status %i", self._control_url, resp.status)
+                _LOGGER.error("Call to %s to set PV target current failed with status %i", self._control_url,
+                              resp.status)
                 return
 
             await self.fetch_settings()
@@ -225,10 +226,10 @@ class Tank:
 
         headers = {'Authorization': f'Bearer {self._token}'}
 
-        async with session.put(self._settings_url, headers=headers, json={'pv_over_temperature': value }) as resp:
-
+        async with session.put(self._settings_url, headers=headers, json={'pv_over_temperature': value}) as resp:
             if resp.status != 200:
-                _LOGGER.error("Call to %s to set PV over temperature failed with status %i", self._control_url, resp.status)
+                _LOGGER.error("Call to %s to set PV over temperature failed with status %i", self._control_url,
+                              resp.status)
                 return
 
             await self.fetch_settings()
@@ -342,7 +343,7 @@ class Tank:
 
                 tank_configuration_json = tank_url_result["configuration"]
                 tank_configuration = json.loads(tank_configuration_json)
-                
+
                 # Some tanks do not return a mixergyPvType - so force to NO_INVERTER
                 tank_configuration_pvtype = tank_configuration.get("mixergyPvType", "NO_INVERTER")
                 self._has_pv_diverter = (tank_configuration_pvtype != "NO_INVERTER")
@@ -363,7 +364,8 @@ class Tank:
         async with session.get(self._latest_measurement_url, headers=headers) as resp:
 
             if resp.status != 200:
-                _LOGGER.info("Fetch of the latest measurement at %s failed with status %i", self._latest_measurement_url, resp.status)
+                _LOGGER.info("Fetch of the latest measurement at %s failed with status %i",
+                             self._latest_measurement_url, resp.status)
                 return
 
             tank_result = await resp.json()
@@ -393,7 +395,7 @@ class Tank:
                 event_data = {
                     "device_id": self._id,
                     "type": "charge_changed",
-                    "charge" : new_charge
+                    "charge": new_charge
                 }
 
                 self._hass.bus.async_fire("mixergy_event", event_data)
@@ -496,7 +498,6 @@ class Tank:
         headers = {'Authorization': f'Bearer {self._token}'}
 
         async with session.get(self._schedule_url, headers=headers) as resp:
-
             if resp.status != 200:
                 _LOGGER.info("Fetch of the schedule %s failed with status %i", self._schedule_url, resp.status)
                 return
@@ -516,7 +517,6 @@ class Tank:
         headers = {'Authorization': f'Bearer {self._token}'}
 
         async with session.put(self._schedule_url, headers=headers, json=value) as resp:
-
             if resp.status != 200:
                 _LOGGER.error("Call to %s to set schedule failed with status %i", self._schedule_url, resp.status)
                 return
@@ -706,7 +706,7 @@ class Tank:
             return None
         except TypeError:
             return None
-        
+
     @property
     def default_heat_source(self) -> str:
         try:

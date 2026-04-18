@@ -16,79 +16,68 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# This is the schema that used to display the UI to the user. This simple
-# schema has a single required host field, but it could include a number of fields
-# such as username, password etc. See other components in the HA core code for
-# further examples.
-# Note the input displayed to the user will be translated. See the
-# translations/<lang>.json file and strings.json. See here for further information:
-# https://developers.home-assistant.io/docs/config_entries_config_flow_handler/#translations
-# At the time of writing I found the translations created by the scaffold didn't
-# quite work as documented and always gave me the "Lokalise key references" string
-# (in square brackets), rather than the actual translated value. I did not attempt to
-# figure this out or look further into it.
-DATA_SCHEMA = vol.Schema({("username"): str,("password"):str,("serial_number"):str})
+# Step 1: credentials + serial number
+CREDENTIALS_SCHEMA = vol.Schema(
+    {
+        vol.Required("username"): str,
+        vol.Required("password"): str,
+        vol.Required("serial_number"): str,
+    }
+)
 
-async def validate_input(hass: core.HomeAssistant, data: dict):
-    """Validate the user input allows us to connect.
-    Data has the keys from DATA_SCHEMA with values provided by the user.
-    """
-    # Validate the data can be used to set up a connection.
+# Step 2: optional physical tank properties used by the heat-loss calculator
+TANK_OPTIONS_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_TANK_LITRES, default=DEFAULT_TANK_LITRES): vol.Coerce(float),
+        vol.Optional(CONF_TANK_SURFACE_M2, default=DEFAULT_TANK_SURFACE_M2): vol.Coerce(float),
+        vol.Optional(CONF_AMBIENT_ENTITY, default=""): str,
+    }
+)
 
-    # This is a simple example to show an error in the UI for a short hostname
-    # The exceptions are defined at the end of this file, and are used in the
-    # `async_step_user` method below.
-    if len(data["username"]) <= 0:
+
+async def validate_credentials(hass: core.HomeAssistant, data: dict):
+    """Validate that the supplied credentials allow a successful connection."""
+
+    if not data.get("username"):
         raise InvalidUserName
-
-    if len(data["password"]) <= 0:
+    if not data.get("password"):
         raise InvalidPassword
-
-    if len(data["serial_number"]) <= 0:
+    if not data.get("serial_number"):
         raise InvalidSerialNumber
 
-    tank = Tank(hass, data["username"],data["password"],data["serial_number"])
+    tank = Tank(hass, data["username"], data["password"], data["serial_number"])
 
-    result = await tank.test_authentication()
-
-    if not result:
+    if not await tank.test_authentication():
         raise AuthenticationFailed
 
-    result = await tank.test_connection()
-
-    if not result:
+    if not await tank.test_connection():
         raise TankNotFound
 
-    # Return info that you want to store in the config entry.
-    # "Title" is what is displayed to the user for this hub device
-    # It is stored internally in HA as part of the device config.
-    # See `async_step_user` below for how this is used
     return {"title": data["serial_number"]}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Hello World."""
+    """Two-step config flow: credentials then optional tank properties."""
 
     VERSION = 1
-    # Pick one of the available connection classes in homeassistant/config_entries.py
-    # This tells HA if it should be asking for updates, or it'll be notified of updates
-    # automatically. This example uses PUSH, as the dummy hub will notify HA of
-    # changes.
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
+    def __init__(self):
+        self._credentials: dict = {}
+
+    # ------------------------------------------------------------------
+    # Step 1 — credentials
+    # ------------------------------------------------------------------
+
     async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
-        # This goes through the steps to take the user through the setup process.
-        # Using this it is possible to update the UI and prompt for additional
-        # information. This example provides a single form (built from `DATA_SCHEMA`),
-        # and when that has some validated input, it calls `async_create_entry` to
-        # actually create the HA config entry. Note the "title" value is returned by
-        # `validate_input` above.
+        """Collect and validate Mixergy account credentials."""
         errors = {}
+
         if user_input is not None:
             try:
-                info = await validate_input(self.hass, user_input)
-                return self.async_create_entry(title=info["title"], data=user_input)
+                await validate_credentials(self.hass, user_input)
+                self._credentials = user_input
+                return await self.async_step_tank_options()
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except AuthenticationFailed:
@@ -96,46 +85,61 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except TankNotFound:
                 errors["base"] = "tank_not_found"
             except InvalidUserName:
-                # The error string is set here, and should be translated.
-                # This example does not currently cover translations, see the
-                # comments on `DATA_SCHEMA` for further details.
-                # Set the error on the `host` field, not the entire form.
                 errors["username"] = "cannot_connect"
             except InvalidPassword:
-                # The error string is set here, and should be translated.
-                # This example does not currently cover translations, see the
-                # comments on `DATA_SCHEMA` for further details.
-                # Set the error on the `host` field, not the entire form.
                 errors["password"] = "cannot_connect"
             except InvalidSerialNumber:
-                # The error string is set here, and should be translated.
-                # This example does not currently cover translations, see the
-                # comments on `DATA_SCHEMA` for further details.
-                # Set the error on the `host` field, not the entire form.
                 errors["serial_number"] = "cannot_connect"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
+            except Exception:
+                _LOGGER.exception("Unexpected exception during credential validation")
                 errors["base"] = "unknown"
 
-        # If there is no user input or there were errors, show the form again, including any errors that were found with the input.
         return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA, errors=errors
+            step_id="user",
+            data_schema=CREDENTIALS_SCHEMA,
+            errors=errors,
         )
+
+    # ------------------------------------------------------------------
+    # Step 2 — tank physical properties (heat-loss configuration)
+    # ------------------------------------------------------------------
+
+    async def async_step_tank_options(self, user_input=None):
+        """Collect optional tank physical properties for heat-loss tracking."""
+        errors = {}
+
+        if user_input is not None:
+            combined = {**self._credentials, **user_input}
+            return self.async_create_entry(
+                title=self._credentials["serial_number"],
+                data=combined,
+            )
+
+        return self.async_show_form(
+            step_id="tank_options",
+            data_schema=TANK_OPTIONS_SCHEMA,
+            errors=errors,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Exceptions
+# ---------------------------------------------------------------------------
 
 class CannotConnect(exceptions.HomeAssistantError):
     """Error to indicate we could not reach the Mixergy API."""
 
 class AuthenticationFailed(exceptions.HomeAssistantError):
-    """Error to indicate we cannot authenciate."""
+    """Error to indicate authentication failed."""
 
 class TankNotFound(exceptions.HomeAssistantError):
-    """Error to indicate we could not find a tank with the serial number."""
+    """Error to indicate we could not find a tank with the given serial number."""
 
 class InvalidUserName(exceptions.HomeAssistantError):
-    """Error to indicate there is an invalid hostname."""
+    """Error to indicate an invalid / empty username."""
 
 class InvalidPassword(exceptions.HomeAssistantError):
-    """Error to indicate there is an invalid password."""
+    """Error to indicate an invalid / empty password."""
 
 class InvalidSerialNumber(exceptions.HomeAssistantError):
-    """Error to indicate there is an invalid serial number."""
+    """Error to indicate an invalid / empty serial number."""

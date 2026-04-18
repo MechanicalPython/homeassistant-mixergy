@@ -7,6 +7,7 @@ from .mixergy_entity import MixergyEntityBase
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(hass, config_entry, async_add_entities):
     _LOGGER.info("Setting up entry based on user config")
 
@@ -26,21 +27,22 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     async_add_entities(new_entities)
 
+
 class NumberEntityBase(MixergyEntityBase, NumberEntity):
 
-    def __init__(self, coordinator, tank:Tank):
+    def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
 
-class TargetTemperatureSensor(NumberEntityBase):
 
-    native_max_value = 55
+class TargetTemperatureSensor(NumberEntityBase):
+    native_max_value = 60
     native_min_value = 45
     native_step = 1
     device_class = NumberDeviceClass.TEMPERATURE
     native_unit_of_measurement = UnitOfTemperature.CELSIUS
 
-    def __init__(self, coordinator, tank:Tank):
-        super().__init__( coordinator, tank)
+    def __init__(self, coordinator, tank: Tank):
+        super().__init__(coordinator, tank)
 
     @property
     def unique_id(self):
@@ -57,14 +59,14 @@ class TargetTemperatureSensor(NumberEntityBase):
     def name(self):
         return f"Target Temperature"
 
-class TargetChargeSensor(NumberEntityBase):
 
+class TargetChargeSensor(NumberEntityBase):
     native_max_value = 100
     native_min_value = 0
     native_step = 1
     native_unit_of_measurement = PERCENTAGE
 
-    def __init__(self, coordinator, tank:Tank):
+    def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
 
     @property
@@ -86,16 +88,16 @@ class TargetChargeSensor(NumberEntityBase):
     def name(self):
         return f"Target Charge"
 
-class CleansingTemperatureSensor(NumberEntityBase):
 
+class CleansingTemperatureSensor(NumberEntityBase):
     native_max_value = 55
     native_min_value = 51
     native_step = 1
     device_class = NumberDeviceClass.TEMPERATURE
     native_unit_of_measurement = UnitOfTemperature.CELSIUS
 
-    def __init__(self, coordinator, tank:Tank):
-        super().__init__( coordinator, tank)
+    def __init__(self, coordinator, tank: Tank):
+        super().__init__(coordinator, tank)
 
     @property
     def unique_id(self):
@@ -112,13 +114,13 @@ class CleansingTemperatureSensor(NumberEntityBase):
     def name(self):
         return f"Cleansing Temperature"
 
-class PVCutInThreshold(NumberEntityBase):
 
+class PVCutInThreshold(NumberEntityBase):
     native_max_value = 500
     native_min_value = 0
     native_step = 50
 
-    def __init__(self, coordinator, tank:Tank):
+    def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
 
     @property
@@ -144,13 +146,13 @@ class PVCutInThreshold(NumberEntityBase):
     def name(self):
         return f"PV Cut In Threshold"
 
-class PVChargeLimitSensor(NumberEntityBase):
 
+class PVChargeLimitSensor(NumberEntityBase):
     native_max_value = 100
     native_min_value = 0
     native_step = 10
 
-    def __init__(self, coordinator, tank:Tank):
+    def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
 
     @property
@@ -176,13 +178,13 @@ class PVChargeLimitSensor(NumberEntityBase):
     def name(self):
         return f"PV Charge Limit"
 
-class PVTargetCurrent(NumberEntityBase):
 
+class PVTargetCurrent(NumberEntityBase):
     native_max_value = 0
     native_min_value = -1
     native_step = 0.1
 
-    def __init__(self, coordinator, tank:Tank):
+    def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
 
     @property
@@ -208,13 +210,13 @@ class PVTargetCurrent(NumberEntityBase):
     def name(self):
         return f"PV Target Current"
 
-class PVOverTemperature(NumberEntityBase):
 
+class PVOverTemperature(NumberEntityBase):
     native_max_value = 60
     native_min_value = 45
     native_step = 1
 
-    def __init__(self, coordinator, tank:Tank):
+    def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
 
     @property

@@ -1,19 +1,16 @@
 from __future__ import annotations
 
 import logging
-import asyncio
-from typing import Optional
-import aiohttp
 from datetime import timedelta, datetime
+from typing import Optional
+
 from homeassistant.const import UnitOfPower, UnitOfTemperature, PERCENTAGE, STATE_OFF
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.components.integration.sensor import IntegrationSensor
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
 from .tank import Tank
 from .mixergy_entity import MixergyEntityBase
@@ -25,65 +22,134 @@ from .const import (
     ATTR_LAST_IDLE_WINDOW,
     ATTR_ROLLING_AVG_W,
     ATTR_U_VALUE,
-    CONF_AMBIENT_ENTITY,
-    CONF_SERIAL,
-    CONF_TANK_LITRES,
-    CONF_TANK_SURFACE_M2,
-    DEFAULT_TANK_LITRES,
-    DEFAULT_TANK_SURFACE_M2,
-    DOMAIN,
-    IDLE_WINDOW_SECONDS,
-    MIN_TEMP_DROP_K,
-    MIXERGY_API_BASE,
-    SCAN_INTERVAL_SECONDS,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    _LOGGER.info("Setting up entry based on user config")
+    _LOGGER.info("Setting up sensor entry based on user config")
 
-    entry = hass.data[DOMAIN][config_entry.entry_id]
-    tank = entry["tank"]
-    coordinator = entry["coordinator"]
+    entry              = hass.data[DOMAIN][config_entry.entry_id]
+    tank               = entry["tank"]
+    coordinator        = entry["coordinator"]
+    hl_coordinator     = entry["heat_loss_coordinator"]
 
-    new_entities = []
+    serial = tank.serial_number
 
-    new_entities.append(HotWaterTemperatureSensor(coordinator, tank))
-    new_entities.append(ColdestWaterTemperatureSensor(coordinator, tank))
-    new_entities.append(ChargeSensor(coordinator, tank))
-    new_entities.append(TargetChargeSensor(coordinator, tank))
-    new_entities.append(ElectricHeatSensor(coordinator, tank))
-    new_entities.append(IndirectHeatSensor(coordinator, tank))
-    new_entities.append(HeatPumpHeatSensor(coordinator, tank))
-    new_entities.append(LowChargeSensor(coordinator, tank))
-    new_entities.append(NoChargeSensor(coordinator, tank))
-    new_entities.append(PowerSensor(coordinator, tank))
-    new_entities.append(EnergySensor(hass, tank))
-    new_entities.append(TargetTemperatureSensor(coordinator, tank))
-    new_entities.append(HolidayModeSensor(coordinator, tank))
-    new_entities.append(PVPowerSensor(coordinator, tank))
-    new_entities.append(PVEnergySensor(hass, tank))
-    new_entities.append(ClampPowerSensor(coordinator, tank))
-    new_entities.append(IsChargingSensor(coordinator, tank))
-    new_entities.append(HolidayStartDateSensor(coordinator, tank))
-    new_entities.append(HolidayEndDateSensor(coordinator, tank))
-    new_entities.append(DefaultHeatSourceSensor(coordinator, tank))
+    new_entities = [
+        # -- Temperature -------------------------------------------------
+        HotWaterTemperatureSensor(coordinator, tank),
+        ColdestWaterTemperatureSensor(coordinator, tank),
+        TargetTemperatureSensor(coordinator, tank),
+        # -- Charge ------------------------------------------------------
+        ChargeSensor(coordinator, tank),
+        TargetChargeSensor(coordinator, tank),
+        # -- Heating state (binary) --------------------------------------
+        ElectricHeatSensor(coordinator, tank),
+        IndirectHeatSensor(coordinator, tank),
+        HeatPumpHeatSensor(coordinator, tank),
+        IsChargingSensor(coordinator, tank),
+        # -- Charge level alerts (binary) --------------------------------
+        LowChargeSensor(coordinator, tank),
+        NoChargeSensor(coordinator, tank),
+        # -- Power / energy ----------------------------------------------
+        PowerSensor(coordinator, tank),
+        EnergySensor(hass, tank),
+        PVPowerSensor(coordinator, tank),
+        PVEnergySensor(hass, tank),
+        ClampPowerSensor(coordinator, tank),
+        # -- Scheduling / mode -------------------------------------------
+        HolidayModeSensor(coordinator, tank),
+        HolidayStartDateSensor(coordinator, tank),
+        HolidayEndDateSensor(coordinator, tank),
+        DefaultHeatSourceSensor(coordinator, tank),
+        # -- Heat loss ---------------------------------------------------
+        MixergyHeatLossSensor(hl_coordinator, serial, config_entry),
+        MixergyRollingHeatLossSensor(hl_coordinator, serial, config_entry),
+        MixergyUValueSensor(hl_coordinator, serial, config_entry),
+    ]
 
     async_add_entities(new_entities)
 
 
 class SensorBase(MixergyEntityBase, SensorEntity):
-
     def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
 
 
 class BinarySensorBase(MixergyEntityBase, BinarySensorEntity):
+    def __init__(self, coordinator, tank: Tank):
+        super().__init__(coordinator, tank)
+
+
+class HotWaterTemperatureSensor(SensorBase):
+    device_class = SensorDeviceClass.TEMPERATURE
 
     def __init__(self, coordinator, tank: Tank):
         super().__init__(coordinator, tank)
+
+    @property
+    def unique_id(self):
+        return f"mixergy_{self._tank.serial_number}_hot_water_temperature"
+
+    @property
+    def state(self):
+        return self._tank.hot_water_temperature
+
+    @property
+    def unit_of_measurement(self):
+        return UnitOfTemperature.CELSIUS
+
+    @property
+    def name(self):
+        return "Hot Water Temperature"
+
+
+class ColdestWaterTemperatureSensor(SensorBase):
+    device_class = SensorDeviceClass.TEMPERATURE
+
+    def __init__(self, coordinator, tank: Tank):
+        super().__init__(coordinator, tank)
+
+    @property
+    def unique_id(self):
+        return f"mixergy_{self._tank.serial_number}_coldest_water_temperature"
+
+    @property
+    def state(self):
+        return self._tank.coldest_water_temperature
+
+    @property
+    def unit_of_measurement(self):
+        return UnitOfTemperature.CELSIUS
+
+    @property
+    def name(self):
+        return "Coldest Water Temperature"
+
+
+class TargetTemperatureSensor(SensorBase):
+    device_class = SensorDeviceClass.TEMPERATURE
+
+    def __init__(self, coordinator, tank: Tank):
+        super().__init__(coordinator, tank)
+
+    @property
+    def unique_id(self):
+        return f"mixergy_{self._tank.serial_number}_target_temperature"
+
+    @property
+    def state(self):
+        return self._tank.target_temperature
+
+    @property
+    def unit_of_measurement(self):
+        return UnitOfTemperature.CELSIUS
+
+    @property
+    def name(self):
+        return "Target Temperature"
 
 
 class ChargeSensor(SensorBase):
@@ -109,7 +175,7 @@ class ChargeSensor(SensorBase):
 
     @property
     def name(self):
-        return f"Current Charge"
+        return "Current Charge"
 
 
 class TargetChargeSensor(SensorBase):
@@ -135,76 +201,7 @@ class TargetChargeSensor(SensorBase):
 
     @property
     def name(self):
-        return f"Target Charge"
-
-
-class HotWaterTemperatureSensor(SensorBase):
-    device_class = SensorDeviceClass.TEMPERATURE
-
-    def __init__(self, coordinator, tank: Tank):
-        super().__init__(coordinator, tank)
-
-    @property
-    def unique_id(self):
-        return f"mixergy_{self._tank.serial_number}_hot_water_temperature"
-
-    @property
-    def state(self):
-        return self._tank.hot_water_temperature
-
-    @property
-    def unit_of_measurement(self):
-        return UnitOfTemperature.CELSIUS
-
-    @property
-    def name(self):
-        return f"Hot Water Temperature"
-
-
-class ColdestWaterTemperatureSensor(SensorBase):
-    device_class = SensorDeviceClass.TEMPERATURE
-
-    def __init__(self, coordinator, tank: Tank):
-        super().__init__(coordinator, tank)
-
-    @property
-    def unique_id(self):
-        return f"mixergy_{self._tank.serial_number}_coldest_water_temperature"
-
-    @property
-    def state(self):
-        return self._tank.coldest_water_temperature
-
-    @property
-    def unit_of_measurement(self):
-        return UnitOfTemperature.CELSIUS
-
-    @property
-    def name(self):
-        return f"Coldest Water Temperature"
-
-
-class TargetTemperatureSensor(SensorBase):
-    device_class = SensorDeviceClass.TEMPERATURE
-
-    def __init__(self, coordinator, tank: Tank):
-        super().__init__(coordinator, tank)
-
-    @property
-    def unique_id(self):
-        return f"mixergy_{self._tank.serial_number}_target_temperature"
-
-    @property
-    def state(self):
-        return self._tank.target_temperature
-
-    @property
-    def unit_of_measurement(self):
-        return UnitOfTemperature.CELSIUS
-
-    @property
-    def name(self):
-        return f"Target Temperature"
+        return "Target Charge"
 
 
 class IndirectHeatSensor(BinarySensorBase):
@@ -227,7 +224,7 @@ class IndirectHeatSensor(BinarySensorBase):
 
     @property
     def name(self):
-        return f"Indirect Heat"
+        return "Indirect Heat"
 
 
 class ElectricHeatSensor(BinarySensorBase):
@@ -247,7 +244,7 @@ class ElectricHeatSensor(BinarySensorBase):
 
     @property
     def name(self):
-        return f"Electric Heat"
+        return "Electric Heat"
 
 
 class HeatPumpHeatSensor(BinarySensorBase):
@@ -267,53 +264,7 @@ class HeatPumpHeatSensor(BinarySensorBase):
 
     @property
     def name(self):
-        return f"HeatPump Heat"
-
-
-class NoChargeSensor(BinarySensorBase):
-
-    def __init__(self, coordinator, tank: Tank):
-        super().__init__(coordinator, tank)
-        self._state = STATE_OFF
-
-    @property
-    def unique_id(self):
-        return f"mixergy_{self._tank.tank_id}_no_charge"
-
-    @property
-    def is_on(self):
-        return self._tank.charge < 0.5
-
-    @property
-    def icon(self):
-        return "hass:water-remove-outline"
-
-    @property
-    def name(self):
-        return f"No Hot Water"
-
-
-class LowChargeSensor(BinarySensorBase):
-
-    def __init__(self, coordinator, tank: Tank):
-        super().__init__(coordinator, tank)
-        self._state = STATE_OFF
-
-    @property
-    def unique_id(self):
-        return f"mixergy_{self._tank.tank_id}_low_charge"
-
-    @property
-    def is_on(self):
-        return self._tank.charge < 5
-
-    @property
-    def icon(self):
-        return "hass:water-percent-alert"
-
-    @property
-    def name(self):
-        return f"Low Hot Water"
+        return "HeatPump Heat"
 
 
 class IsChargingSensor(BinarySensorBase):
@@ -336,7 +287,53 @@ class IsChargingSensor(BinarySensorBase):
 
     @property
     def name(self):
-        return f"Is Charging"
+        return "Is Charging"
+
+
+class NoChargeSensor(BinarySensorBase):
+
+    def __init__(self, coordinator, tank: Tank):
+        super().__init__(coordinator, tank)
+        self._state = STATE_OFF
+
+    @property
+    def unique_id(self):
+        return f"mixergy_{self._tank.tank_id}_no_charge"
+
+    @property
+    def is_on(self):
+        return self._tank.charge < 0.5
+
+    @property
+    def icon(self):
+        return "hass:water-remove-outline"
+
+    @property
+    def name(self):
+        return "No Hot Water"
+
+
+class LowChargeSensor(BinarySensorBase):
+
+    def __init__(self, coordinator, tank: Tank):
+        super().__init__(coordinator, tank)
+        self._state = STATE_OFF
+
+    @property
+    def unique_id(self):
+        return f"mixergy_{self._tank.tank_id}_low_charge"
+
+    @property
+    def is_on(self):
+        return self._tank.charge < 5
+
+    @property
+    def icon(self):
+        return "hass:water-percent-alert"
+
+    @property
+    def name(self):
+        return "Low Hot Water"
 
 
 class PowerSensor(SensorBase):
@@ -361,7 +358,7 @@ class PowerSensor(SensorBase):
 
     @property
     def name(self):
-        return f"Mixergy Electric Heat Power"
+        return "Mixergy Electric Heat Power"
 
 
 class EnergySensor(IntegrationSensor):
@@ -376,7 +373,7 @@ class EnergySensor(IntegrationSensor):
             unit_time="h",
             integration_method="left",
             unique_id=f"mixergy_{tank.tank_id}_energy",
-            max_sub_interval=None
+            max_sub_interval=None,
         )
 
     @property
@@ -406,7 +403,7 @@ class PVPowerSensor(SensorBase):
 
     @property
     def name(self):
-        return f"Mixergy Electric PV Power"
+        return "Mixergy Electric PV Power"
 
     @property
     def available(self):
@@ -425,7 +422,7 @@ class PVEnergySensor(IntegrationSensor):
             unit_time="h",
             integration_method="left",
             unique_id=f"mixergy_{tank.tank_id}_pv_energy",
-            max_sub_interval=None
+            max_sub_interval=None,
         )
         self._tank = tank
 
@@ -460,7 +457,7 @@ class ClampPowerSensor(SensorBase):
 
     @property
     def name(self):
-        return f"Clamp Power"
+        return "Clamp Power"
 
     @property
     def available(self):
@@ -487,7 +484,7 @@ class HolidayModeSensor(BinarySensorBase):
 
     @property
     def name(self):
-        return f"Holiday Mode"
+        return "Holiday Mode"
 
 
 class HolidayStartDateSensor(SensorBase):
@@ -507,7 +504,7 @@ class HolidayStartDateSensor(SensorBase):
 
     @property
     def name(self):
-        return f"Holiday Date Start"
+        return "Holiday Date Start"
 
 
 class HolidayEndDateSensor(SensorBase):
@@ -527,7 +524,7 @@ class HolidayEndDateSensor(SensorBase):
 
     @property
     def name(self):
-        return f"Holiday Date End"
+        return "Holiday Date End"
 
 
 class DefaultHeatSourceSensor(SensorBase):
@@ -547,56 +544,127 @@ class DefaultHeatSourceSensor(SensorBase):
 
     @property
     def name(self):
-        return f"Default Heat Source"
+        return "Default Heat Source"
 
 
-class MixergyHeatLossSensor(CoordinatorEntity, SensorEntity):
-    """Instantaneous passive heat loss in Watts."""
+class _HeatLossSensorBase(CoordinatorEntity, SensorEntity):
+    """Base for sensors that read from the heat-loss coordinator."""
 
-    _attr_name = "Mixergy Passive Heat Loss"
-    _attr_native_unit_of_measurement = UnitOfPower.WATT
-    _attr_device_class = SensorDeviceClass.POWER
-    _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_icon = "mdi:water-thermometer-outline"
-
-    def __init__(self, coordinator, serial: str, entry: ConfigEntry) -> None:
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        serial: str,
+        entry: ConfigEntry,
+    ) -> None:
         super().__init__(coordinator)
         self._serial = serial
+        self._entry  = entry
+
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {(DOMAIN, self._serial)},
+        }
+
+
+class MixergyHeatLossSensor(_HeatLossSensorBase):
+    """Instantaneous passive heat loss in Watts, computed over the most
+    recent idle window."""
+
+    _attr_name                       = "Mixergy Passive Heat Loss"
+    _attr_native_unit_of_measurement = UnitOfPower.WATT
+    _attr_device_class               = SensorDeviceClass.POWER
+    _attr_state_class                = SensorStateClass.MEASUREMENT
+    _attr_icon                       = "mdi:water-thermometer-outline"
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        serial: str,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(coordinator, serial, entry)
         self._attr_unique_id = f"{DOMAIN}_{serial}_heat_loss_w"
 
     @property
-    def native_value(self):
-        result = self.coordinator.data.get("result")
+    def native_value(self) -> Optional[float]:
+        result = self.coordinator.data.get("result") if self.coordinator.data else None
         return result.power_watts if result else None
 
     @property
     def extra_state_attributes(self) -> dict:
-        data = self.coordinator.data
+        data   = self.coordinator.data or {}
         result = data.get("result")
-        attrs = {
+        attrs  = {
             ATTR_ROLLING_AVG_W: data.get("rolling_avg"),
             ATTR_AMBIENT_TEMP_C: data.get("ambient_c"),
         }
         if result:
             attrs[ATTR_LAST_IDLE_WINDOW] = result.delta_time_s
-            attrs[ATTR_U_VALUE] = result.u_value_w_m2_k
+            attrs[ATTR_U_VALUE]          = result.u_value_w_m2_k
         return attrs
 
 
-class MixergyUValueSensor(CoordinatorEntity, SensorEntity):
-    """Estimated tank insulation U-value (W/m²·K)."""
+class MixergyRollingHeatLossSensor(_HeatLossSensorBase):
+    """24-hour rolling average of passive heat loss in Watts."""
 
-    _attr_name = "Mixergy Tank U-value"
+    _attr_name                       = "Mixergy Heat Loss 24h Average"
+    _attr_native_unit_of_measurement = UnitOfPower.WATT
+    _attr_device_class               = SensorDeviceClass.POWER
+    _attr_state_class                = SensorStateClass.MEASUREMENT
+    _attr_icon                       = "mdi:chart-bell-curve"
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        serial: str,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(coordinator, serial, entry)
+        self._attr_unique_id = f"{DOMAIN}_{serial}_heat_loss_rolling_avg_w"
+
+    @property
+    def native_value(self) -> Optional[float]:
+        data = self.coordinator.data or {}
+        return data.get("rolling_avg")
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data = self.coordinator.data or {}
+        return {ATTR_AMBIENT_TEMP_C: data.get("ambient_c")}
+
+
+class MixergyUValueSensor(_HeatLossSensorBase):
+    """Estimated effective tank insulation U-value in W/m²·K.
+
+    Only available when an ambient temperature entity has been configured.
+    """
+
+    _attr_name                       = "Mixergy Tank U-value"
     _attr_native_unit_of_measurement = "W/m²·K"
-    _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_icon = "mdi:thermometer-lines"
+    _attr_state_class                = SensorStateClass.MEASUREMENT
+    _attr_icon                       = "mdi:thermometer-lines"
 
-    def __init__(self, coordinator, serial: str, entry: ConfigEntry) -> None:
-        super().__init__(coordinator)
-        self._serial = serial
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        serial: str,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(coordinator, serial, entry)
         self._attr_unique_id = f"{DOMAIN}_{serial}_u_value"
 
     @property
-    def native_value(self):
-        result = self.coordinator.data.get("result")
+    def native_value(self) -> Optional[float]:
+        data   = self.coordinator.data or {}
+        result = data.get("result")
         return result.u_value_w_m2_k if result else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data   = self.coordinator.data or {}
+        result = data.get("result")
+        attrs  = {ATTR_AMBIENT_TEMP_C: data.get("ambient_c")}
+        if result:
+            attrs[ATTR_LAST_IDLE_WINDOW] = result.delta_time_s
+        return attrs
