@@ -33,7 +33,7 @@ class NumberEntityBase(MixergyEntityBase, NumberEntity):
 
 class TargetTemperatureSensor(NumberEntityBase):
 
-    native_max_value = 55
+    native_max_value = 60
     native_min_value = 45
     native_step = 1
     device_class = NumberDeviceClass.TEMPERATURE
@@ -88,7 +88,7 @@ class TargetChargeSensor(NumberEntityBase):
 
 class CleansingTemperatureSensor(NumberEntityBase):
 
-    native_max_value = 55
+    native_max_value = 65
     native_min_value = 51
     native_step = 1
     device_class = NumberDeviceClass.TEMPERATURE
