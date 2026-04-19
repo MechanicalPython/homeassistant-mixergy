@@ -159,7 +159,7 @@ def _register_services(hass):
         hass.services.async_register(
             DOMAIN,
             SERVICE_SET_CHARGE,
-            verify_domain_control(hass, DOMAIN)(mixergy_set_charge),
+            verify_domain_control(DOMAIN)(mixergy_set_charge),
             schema=vol.Schema(
                 {
                     vol.Required(ATTR_CHARGE): cv.positive_int
@@ -172,7 +172,7 @@ def _register_services(hass):
         hass.services.async_register(
             DOMAIN,
             SERVICE_SET_TARGET_TEMPERATURE,
-            verify_domain_control(hass, DOMAIN)(mixergy_set_target_temperature),
+            verify_domain_control(DOMAIN)(mixergy_set_target_temperature),
             schema=vol.Schema(
                 {
                     vol.Required(ATTR_TEMPERATURE): cv.positive_int
@@ -185,7 +185,7 @@ def _register_services(hass):
         hass.services.async_register(
             DOMAIN,
             SERVICE_SET_HOLIDAY_DATES,
-            verify_domain_control(hass, DOMAIN)(mixergy_set_holiday_dates),
+            verify_domain_control(DOMAIN)(mixergy_set_holiday_dates),
             schema=vol.Schema(
                 {
                     vol.Required(ATTR_START_DATE): cv.datetime,
@@ -199,14 +199,14 @@ def _register_services(hass):
         hass.services.async_register(
             DOMAIN,
             SERVICE_CLEAR_HOLIDAY_DATES,
-            verify_domain_control(hass, DOMAIN)(mixergy_clear_holiday_dates),
+            verify_domain_control(DOMAIN)(mixergy_clear_holiday_dates),
         )
 
     if not hass.services.has_service(DOMAIN, SERVICE_SET_DEFAULT_HEAT_SOURCE):
         hass.services.async_register(
             DOMAIN,
             SERVICE_SET_DEFAULT_HEAT_SOURCE,
-            verify_domain_control(hass, DOMAIN)(mixergy_set_default_heat_source),
+            verify_domain_control(DOMAIN)(mixergy_set_default_heat_source),
             schema=vol.Schema(
                 {
                     vol.Required(ATTR_HEAT_SOURCE): cv.string
